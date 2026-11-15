@@ -23,6 +23,14 @@
     "typescript"
   ],
   "license": "MIT",
+  "homepage": "https://github.com/vrtexe/canvas-glide-svelte#readme",
+  "bugs": {
+    "url": "https://github.com/vrtexe/canvas-glide-svelte/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/vrtexe/canvas-glide-svelte.git"
+  },
   "publishConfig": {
     "access": "public"
   },
