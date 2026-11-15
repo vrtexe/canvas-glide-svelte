@@ -112,7 +112,7 @@ The image and HTML renderers load PNG, JPEG, GIF, WebP, AVIF and BMP through a `
 
 ## Development
 
-The package source is `src/lib`, and `npm run dev` starts a demo app (`src/App.svelte`) that uses it. `canvas-glide` is listed twice: `^1.0.1` in `dependencies` for consumers, and `../lib` in `devDependencies`, which npm links during local development. Build `lib` first, then:
+The package source is `src/lib`, and `npm run dev` starts a demo app (`src/App.svelte`) that uses it. `canvas-glide` comes from npm; to work against an unreleased engine, build it and run `npm link ../lib` (the path to a local `canvas-glide` checkout), and `npm install` restores the published version. The usual commands:
 
 ```sh
 npm install
@@ -122,6 +122,8 @@ npm run build
 ```
 
 `npm run check` runs `svelte-check`. `npm test` runs the Vitest suite in `test/` in jsdom, with the 2D context, `createImageBitmap` and `ResizeObserver` stubbed. `npm run build` packages `src/lib` into `dist/` with `svelte-package` and checks the result with `publint`; `npm run build:demo` builds the demo into `demo-dist/`.
+
+Publishing a GitHub release runs `.github/workflows/npm-publish.yml`: it checks, tests and builds the tag, sets `package.json` on the default branch to the release version, and stages the package on npm with trusted publishing; `npm stage approve` publishes it.
 
 ## License
 
