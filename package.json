@@ -1,6 +1,6 @@
 {
   "name": "@canvas-glide/svelte",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Svelte 5 components and attachment for canvas-glide: pan, zoom and pinch-to-zoom for images or any content, with reactive state and mouse, touch, pen and wheel input.",
   "keywords": [
     "svelte",
