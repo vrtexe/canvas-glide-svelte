@@ -4,14 +4,25 @@ import assert from "node:assert/strict";
 import { createRawSnippet, flushSync, mount, unmount } from "svelte";
 import { Glide, GlideCanvas, Renderer } from "../src/lib/index.ts";
 
-// jsdom has no layout, no ResizeObserver, no pointer capture, no 2D context and no createImageBitmap.
-globalThis.ResizeObserver ??= class {
-  observe() {}
+// jsdom has no layout, no ResizeObserver, no scrollTo, no pointer capture, no 2D context and no createImageBitmap.
+const resizeCallbacks = new Set<() => void>();
+globalThis.ResizeObserver = class {
+  #callback: () => void;
+  constructor(callback: () => void) {
+    this.#callback = callback;
+  }
+  observe() {
+    resizeCallbacks.add(this.#callback);
+  }
   unobserve() {}
-  disconnect() {}
-};
-Object.defineProperty(HTMLElement.prototype, "clientWidth", { configurable: true, get: () => 1000 });
-Object.defineProperty(HTMLElement.prototype, "clientHeight", { configurable: true, get: () => 700 });
+  disconnect() {
+    resizeCallbacks.delete(this.#callback);
+  }
+} as unknown as typeof ResizeObserver;
+let layout = { width: 1000, height: 700 };
+Object.defineProperty(HTMLElement.prototype, "clientWidth", { configurable: true, get: () => layout.width });
+Object.defineProperty(HTMLElement.prototype, "clientHeight", { configurable: true, get: () => layout.height });
+Element.prototype.scrollTo ??= () => {};
 Element.prototype.setPointerCapture ??= () => {};
 Element.prototype.hasPointerCapture ??= () => false;
 Element.prototype.releasePointerCapture ??= () => {};
@@ -41,6 +52,7 @@ const cleanups: (() => void)[] = [];
 afterEach(() => {
   cleanups.splice(0).forEach((cleanup) => cleanup());
   setDevicePixelRatio(1);
+  layout = { width: 1000, height: 700 };
 });
 
 /** An element attached as the viewport, with a stubbed client rectangle. */
@@ -183,3 +195,37 @@ test("children render in an overlay sized to the content and moved with the tran
   await settle();
   assert.match(overlay.style.transform, /^scale\(2\)/);
 });
+
+for (const renderer of [Renderer.Canvas, Renderer.Image, Renderer.Html]) {
+  test(`the ${renderer} renderer fits an image that loaded before the viewport had a size once it has one`, async () => {
+    layout = { width: 0, height: 0 };
+    const glide = new Glide();
+    const target = render({ glide, renderer, image: new Blob(["x"], { type: "image/png" }) });
+    const viewport = target.firstElementChild as HTMLElement;
+    viewport.getBoundingClientRect = () => ({ x: 0, y: 0, ...layout }) as DOMRect;
+    await settle();
+    const img = target.querySelector("img");
+    if (img) {
+      Object.defineProperties(img, { naturalWidth: { value: 400 }, naturalHeight: { value: 200 } });
+      img.dispatchEvent(new Event("load"));
+      await settle();
+    }
+
+    layout = { width: 1000, height: 700 };
+    resizeCallbacks.forEach((callback) => callback());
+    await settle();
+
+    const content = glide.contentSize!;
+    assert.deepEqual(glide.engine.getTransform(), {
+      origin: { x: (content.width - 1000) / 2, y: (content.height - 700) / 2 },
+      scale: 1,
+    });
+
+    glide.panTo({ x: 10, y: 20 });
+    layout = { width: 1200, height: 800 };
+    resizeCallbacks.forEach((callback) => callback());
+    await settle();
+
+    assert.deepEqual(glide.engine.getOrigin(), { x: 10, y: 20 });
+  });
+}
