@@ -7,7 +7,8 @@
   import type { Glide } from '../glide.svelte.js';
   import { createAsyncMemo } from '../util/asyncMemo.svelte.js';
   import { createImageUrlSafe, revokeImageUrl } from '../util/image.js';
-  import { fitInto, type Size } from '../util/size.js';
+  import { fitContent } from '../util/fitContent.svelte.js';
+  import type { Size } from '../util/size.js';
 
   let { glide, image }: { glide: Glide; image?: Blob | null } = $props();
 
@@ -18,9 +19,7 @@
   let loaded = $state.raw<{ src: string; natural: Size } | null>(null);
   const natural = $derived(loaded && loaded.src === src.current ? loaded.natural : null);
 
-  $effect(() => {
-    glide.contentSize = natural && fitInto(glide.viewportSize, natural);
-  });
+  fitContent(() => glide, () => natural);
 
   const padX = $derived(glide.viewportSize.width);
   const padY = $derived(glide.viewportSize.height);
@@ -33,8 +32,6 @@
   function onload(event: Event) {
     const img = event.currentTarget as HTMLImageElement;
     loaded = { src: img.getAttribute('src') ?? '', natural: { width: img.naturalWidth, height: img.naturalHeight } };
-    glide.contentSize = fitInto(glide.viewportSize, loaded.natural);
-    glide.fit();
   }
 </script>
 

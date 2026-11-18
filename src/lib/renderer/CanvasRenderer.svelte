@@ -1,10 +1,9 @@
 <script lang="ts">
-  import { untrack } from 'svelte';
   import type { Attachment } from 'svelte/attachments';
   import type { Glide } from '../glide.svelte.js';
   import { createAsyncMemo } from '../util/asyncMemo.svelte.js';
   import { createImageBitmapSafe } from '../util/image.js';
-  import { fitInto } from '../util/size.js';
+  import { fitContent } from '../util/fitContent.svelte.js';
 
   let { glide, image }: { glide: Glide; image?: Blob | null } = $props();
 
@@ -13,15 +12,7 @@
     (value) => value?.close(),
   );
 
-  // A new image is fitted once; a resize keeps the view and only updates the content size.
-  $effect(() => {
-    const current = bitmap.current;
-    glide.contentSize = current && fitInto(glide.viewportSize, current);
-  });
-
-  $effect(() => {
-    if (bitmap.current) untrack(() => glide.fit());
-  });
+  fitContent(() => glide, () => bitmap.current);
 
   // Re-runs whenever the transform, the viewport size or the image changes.
   const draw: Attachment<HTMLCanvasElement> = (canvas) => {
